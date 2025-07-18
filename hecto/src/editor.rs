@@ -1,4 +1,5 @@
-use crossterm::event::{self, Event};
+use crossterm::cursor::{Hide, MoveTo, Show};
+use crossterm::event::Event;
 use crossterm::event::{read, Event::Key, KeyCode::Char, KeyEvent, KeyModifiers};
 use crossterm::execute;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType};
@@ -36,6 +37,7 @@ impl Editor {
 
     fn repl(&mut self) -> Result<(), std::io::Error> {
         loop {
+            self.draw_rows();
             let event = read()?;
             self.evaluate_event(&event);
             self.refresh_screen()?;
@@ -57,19 +59,18 @@ impl Editor {
         }
     }
 
-    // fn evaluate_event(&mut self, event: &Event) {
-    //     if let Key(KeyEvent {
-    //         code, modifiers, ..
-    //     }) = event
-    //     {
-    //         match code {
-    //             Char('q') if *modifiers == KeyModifiers::CONTROL => {
-    //                 self.should_quit = true;
-    //             }
-    //             _ => (),
-    //         }
-    //     }
-    // }
+    fn draw_rows(&self) -> Result<(), std::io::Error> {
+        let mut stdout = stdout();
+        execute!(stdout, Hide)?;
+
+        let (_, rows) = crossterm::terminal::size().unwrap();
+        for row in 0..rows {
+            print!("{}\r\n", '~');
+        }
+        execute!(stdout, MoveTo(0, 0))?;
+        execute!(stdout, Show)?;
+        Ok(())
+    }
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
         if self.should_quit {
